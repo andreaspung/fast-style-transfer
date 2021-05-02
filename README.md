@@ -13,8 +13,11 @@ It takes 100ms on a 2015 Titan X to style the MIT Stata Center (1024×680) like 
 
 Our implementation is based off of a combination of Gatys' [A Neural Algorithm of Artistic Style](https://arxiv.org/abs/1508.06576), Johnson's [Perceptual Losses for Real-Time Style Transfer and Super-Resolution](http://cs.stanford.edu/people/jcjohns/eccv16/), and Ulyanov's [Instance Normalization](https://arxiv.org/abs/1607.08022). 
 
-#### Don't have access to a GPU but want to train a style or transform large batches of images?
-Contact me at engstrom@mit.edu for rates.
+### Sponsorship
+Please consider sponsoring my work on this project!
+
+### License
+Copyright (c) 2016 Logan Engstrom. Contact me for commercial use (or rather any use that is not academic research) (email: engstrom at my university's domain dot edu). Free for research use, as long as proper attribution is given and this copyright notice is retained.
 
 ## Video Stylization 
 Here we transformed every frame in a video, then combined the results. [Click to go to the full demo on YouTube!](https://www.youtube.com/watch?v=xVJwwWQlQ1o) The style here is Udnie, as above.
@@ -52,10 +55,32 @@ We added styles from various paintings to a photo of Chicago. Click on thumbnail
 
 ## Implementation Details
 Our implementation uses TensorFlow to train a fast style transfer network. We use roughly the same transformation network as described in Johnson, except that batch normalization is replaced with Ulyanov's instance normalization, and the scaling/offset of the output `tanh` layer is slightly different. We use a loss function close to the one described in Gatys, using VGG19 instead of VGG16 and typically using "shallower" layers than in Johnson's implementation (e.g. we use `relu1_1` rather than `relu1_2`). Empirically, this results in larger scale style features in transformations.
-
+## Virtual Environment Setup (Anaconda) - Windows/Linux
+Tested on
+| Spec                        |                                                             |
+|-----------------------------|-------------------------------------------------------------|
+| Operating System            | Windows 10 Home                                             |
+| GPU                         | Nvidia GTX 2080 TI                                          |
+| CUDA Version                | 11.0                                                        |
+| Driver Version              | 445.75                                                      |
+### Step 1：Install Anaconda
+https://docs.anaconda.com/anaconda/install/
+### Step 2：Build a virtual environment
+Run the following commands in sequence in Anaconda Prompt:
+```
+conda create -n tf-gpu tensorflow-gpu=2.1.0
+conda activate tf-gpu
+conda install jupyterlab
+jupyter lab
+```
+Run the following command in the notebook or just conda install the package:
+```
+!pip install moviepy==1.0.2
+```
+Follow the commands below to use fast-style-transfer
 ## Documentation
 ### Training Style Transfer Networks
-Use `style.py` to train a new style transfer network. Run `python style.py` to view all the possible parameters. Training takes 4-6 hours on a Maxwell Titan X. [More detailed documentation here](docs.md#style). **Before you run this, you should run `setup.sh`**. Example usage:
+Use `style.py` to train a new style transfer network. Run `python style.py` to view all the possible parameters. Training takes 4-6 hours on a Maxwell Titan X. [More detailed documentation here](docs.md#stylepy). **Before you run this, you should run `setup.sh`**. Example usage:
 
     python style.py --style path/to/style/img.jpg \
       --checkpoint-dir checkpoint/path \
@@ -66,14 +91,14 @@ Use `style.py` to train a new style transfer network. Run `python style.py` to v
       --batch-size 20
 
 ### Evaluating Style Transfer Networks
-Use `evaluate.py` to evaluate a style transfer network. Run `python evaluate.py` to view all the possible parameters. Evaluation takes 100 ms per frame (when batch size is 1) on a Maxwell Titan X. [More detailed documentation here](docs.md#evaluate). Takes several seconds per frame on a CPU. **Models for evaluation are [located here](https://drive.google.com/drive/folders/0B9jhaT37ydSyRk9UX0wwX3BpMzQ?usp=sharing)**. Example usage:
+Use `evaluate.py` to evaluate a style transfer network. Run `python evaluate.py` to view all the possible parameters. Evaluation takes 100 ms per frame (when batch size is 1) on a Maxwell Titan X. [More detailed documentation here](docs.md#evaluatepy). Takes several seconds per frame on a CPU. **Models for evaluation are [located here](https://drive.google.com/drive/folders/0B9jhaT37ydSyRk9UX0wwX3BpMzQ?usp=sharing)**. Example usage:
 
     python evaluate.py --checkpoint path/to/style/model.ckpt \
       --in-path dir/of/test/imgs/ \
       --out-path dir/for/results/
 
 ### Stylizing Video
-Use `transform_video.py` to transfer style into a video. Run `python transform_video.py` to view all the possible parameters. Requires `ffmpeg`. [More detailed documentation here](docs.md#video). Example usage:
+Use `transform_video.py` to transfer style into a video. Run `python transform_video.py` to view all the possible parameters. Requires `ffmpeg`. [More detailed documentation here](docs.md#transform_videopy). Example usage:
 
     python transform_video.py --in-path path/to/input/vid.mp4 \
       --checkpoint path/to/style/model.ckpt \
@@ -107,6 +132,5 @@ You will need the following to run the above:
 - Some readme/docs formatting was borrowed from Justin Johnson's [Fast Neural Style](https://github.com/jcjohnson/fast-neural-style)
 - The image of the Stata Center at the very beginning of the README was taken by [Juan Paulo](https://juanpaulo.me/)
 
-### License
-Copyright (c) 2016 Logan Engstrom. Contact me for commercial use (email: engstrom at my university's domain dot edu). Free for research/noncommercial use, as long as proper attribution is given and this copyright notice is retained.
-
+### Related Work
+- Michael Ramos ported this network [to use CoreML on iOS](https://medium.com/@rambossa/diy-prisma-fast-style-transfer-app-with-coreml-and-tensorflow-817c3b90dacd)
