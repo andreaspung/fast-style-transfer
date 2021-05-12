@@ -9,10 +9,10 @@
 #The job requires 1 task per node
 #SBATCH --ntasks-per-node=1
 
-#The maximum walltime of the job is 5 minutes
-#SBATCH -t 20:00:00
+#The maximum walltime of the job is 24 hours
+#SBATCH -t 24:00:00
 
-#SBATCH --mem=8G
+#SBATCH --mem=16G
 
 #If you keep the next two lines, you will get an e-mail notification
 #whenever something happens to your job (it starts running, completes or fails)
@@ -28,27 +28,21 @@
 #Commands to execute go below
 
 #Load Python
-#module load python/3.8.6
-module load tensorflow2/py3.cuda10.0
-#module load broadwell/cudnn/7.6.3/cuda-10.1
+module load python/3.6.3/virtenv
 
 #Activate your environment
-#source /gpfs/space/home/citius/anaconda3/etc/profile.d/conda.sh
-#conda activate tf-gpu
+source activate tf2-gpu
 
-#pip install --user --upgrade tensorflow-gpu==2.1.0
-pip install --user imageio
-pip install --user moviepy
-pip install --user imageio-ffmpeg
+IMPATH="c53a9eb7f98bd9efe52407712806bfee_XL.jpg"
 
-conda list
-module list
+mkdir ./checkpoints/$IMPATH/
+mkdir ./checkpoint-images/$IMPATH/
 
 echo "Starting training."
-python style.py --style ./MagicMirror2.0-Trinity/OTSING.jpg \
-  --checkpoint-dir ./checkpoints/ \
-  --test ./MagicMirror2.0-Trinity/896.jpg \
-  --test-dir ./checkpoint-images/ \
-  --content-weight 1.5e1 \
-  --checkpoint-iterations 1000 \
-  --batch-size 20
+python style.py --style ./MagicMirror2.0-Trinity/$IMPATH \
+  --checkpoint-dir ./checkpoints/$IMPATH/ \
+  --test ./MagicMirror2.0-Trinity/test_image.jpg \
+  --test-dir ./checkpoint-images/$IMPATH/ \
+  --checkpoint-iterations 2000 \
+  --batch-size 4
+echo "Training finished."
