@@ -8,6 +8,7 @@ import argparse
 import time
 import dlib
 import math
+import os
 from imutils.video import VideoStream
 from src.client import send_image
 
@@ -27,7 +28,7 @@ def setup_parser():
     return parser
 
 def read_orig_image(index):
-    orig_im = cv2.imread("./styles/"+styles[index]+".jpg")
+    orig_im = cv2.imread("./styles/"+styles[index])
     factory = 240. / orig_im.shape[0]
     factorx = 240. / orig_im.shape[1]
     factor = min(factorx, factory)
@@ -37,6 +38,7 @@ def read_orig_image(index):
     text_size_ln2 = cv2.getTextSize("by "+authors[index],cv2.FONT_HERSHEY_SIMPLEX,1,0)[0]
     cv2.putText(orig_im, titles[index], (orig_im.shape[1]-text_size_ln1[0], orig_im.shape[0]-(10+2*text_size_ln1[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, lineType=cv2.LINE_AA)
     cv2.putText(orig_im, "by "+authors[index], (orig_im.shape[1]-text_size_ln2[0], orig_im.shape[0]-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, lineType=cv2.LINE_AA)
+    
     return orig_im
        
 # displays clock-similar animation next to original style image 
@@ -84,10 +86,23 @@ def stylize_frame(frame):
     img_out = np.squeeze(img_out).astype(np.uint8)
     return cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
 
+def load_checkpoint(saver, checkpoint_dir):
+    if os.path.isdir(checkpoint_dir):
+        ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            raise Exception("No checkpoint found...")
+    else:
+        saver.restore(sess, checkpoint_dir)
+
+
 def stylize_and_output(cap, sess, saver, next):
     default_radius = 13
     print('Loading up model...')
-    saver.restore(sess, "./models/"+styles[next]+".ckpt")
+    checkpoint_dir = "./models/"+styles[next]
+    load_checkpoint(saver, checkpoint_dir)
+    
     print('Begin filtering...')
     # init original style image
     orig_im = read_orig_image(next)
@@ -176,7 +191,8 @@ def stylize_and_output(cap, sess, saver, next):
                     cv2.waitKey(1000)
                                                 
                 next = (next + 1) % len(styles)
-                saver.restore(sess, "./models/"+styles[next]+".ckpt")
+                checkpoint_dir = "./models/"+styles[next]
+                load_checkpoint(saver, checkpoint_dir)
                 orig_im = read_orig_image(next)
                 face_start_time = 0
                 style_start_time = time.time()
@@ -189,12 +205,14 @@ def stylize_and_output(cap, sess, saver, next):
         if key == ord('d') or time.time() - style_start_time > args.timeout_style:
                 next = (next + 1) % len(styles)
                 orig_im = read_orig_image(next)
-                saver.restore(sess, "./models/"+styles[next]+".ckpt")
+                checkpoint_dir = "./models/"+styles[next]
+                load_checkpoint(saver, checkpoint_dir)
                 style_start_time = time.time()
         if key == ord('a'):
                 next = (next - 1) % len(styles)-1
                 orig_im = read_orig_image(next)
-                saver.restore(sess, "./models/"+styles[next]+".ckpt")
+                checkpoint_dir = "./models/"+styles[next]
+                load_checkpoint(saver, checkpoint_dir)
                 style_start_time = time.time()
         if key & 0xFF == ord('q'):
                 break
@@ -221,15 +239,25 @@ if __name__ == '__main__':
 
     # Create the graph.
     g = tf.Graph()
-    soft_config = tf.ConfigProto(allow_soft_placement=True)
+    soft_config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
     soft_config.gpu_options.allow_growth = True
     #soft_config.gpu_options.per_process_gpu_memory_fraction=0.33
     shape = [1, y_new, x_new, 3]
 
     # init authors, titles and styles
-    authors = ["P.Picasso", "A.Akberg", "L.Afremov", "E.Munch", "F.Picabia", "K.Hokusai", "W.Turner", "A. ja M.-K."]
-    titles = ["La Muse", "Toompea", "Rain Princess", "Scream", "Udnie", "The Wave", "The Shipwreck", "Wave"]
-    styles = ["la_muse", "akberg", "rain_princess", "scream", "udnie", "wave", "wreck", "new_style"]
+    styles = []
+    authors = []
+    titles = []
+
+    # Read the metadata file
+    with open("metadata.txt", "r", encoding="utf8") as meta_file:
+        # Ignore the header
+        meta_lines = meta_file.readlines()[1:]
+        for line in meta_lines:
+    	    st, au, ti = line.strip().split("|")
+    	    styles.append(st)
+    	    authors.append(au)
+    	    titles.append(ti)
     
     # Create face detector
     detector = dlib.get_frontal_face_detector()
@@ -242,17 +270,14 @@ if __name__ == '__main__':
 
     # open graph
     with g.as_default():
-        X = tf.placeholder(tf.float32, shape=shape, name='img_placeholder')
+        X = tf.compat.v1.placeholder(tf.float32, shape=shape, name='img_placeholder')
         Y = transform.net(X)
 
-        # restore the model to the session.
-        saver = tf.train.Saver()
-
+        saver = tf.compat.v1.train.Saver()
         if args.fullscreen:
             cv2.namedWindow("result", cv2.WND_PROP_FULLSCREEN)
             cv2.setWindowProperty("result", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         next = 0
-        sess = tf.Session(config=soft_config)
-
+        sess = tf.compat.v1.Session(config=soft_config)
         stylize_and_output(cap, sess, saver, next)
