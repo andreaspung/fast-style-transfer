@@ -9,8 +9,10 @@ import time
 import dlib
 import math
 import os
+import textwrap
 from imutils.video import VideoStream
 from src.client import send_image
+from PIL import Image, ImageDraw, ImageFont
 
 def setup_parser():
     """Options for command-line input."""
@@ -26,6 +28,23 @@ def setup_parser():
     parser.add_argument('--stylize_preview', action="store_true", default=False)
     parser.add_argument('--detect_faces', action="store_true", default=False)
     return parser
+    
+    
+def put_utf_8_text(img_OpenCV, text_to_add, position, color):
+    img_PIL = Image.fromarray(cv2.cvtColor(img_OpenCV, cv2.COLOR_BGR2RGB))
+    font = ImageFont.truetype("fonts/FreeMono.ttf", 20)
+    draw = ImageDraw.Draw(img_PIL)
+    
+    lines = textwrap.wrap(text_to_add, width=20)
+    position = (position[0], position[1] - (20 * len(lines)) )
+    
+    for line in lines:
+        draw.text(position, line, font=font, fill=color)
+        position = (position[0], position[1] + 20)
+
+    # Convert back to OpenCV format
+    img_OpenCV = cv2.cvtColor(np.asarray(img_PIL), cv2.COLOR_RGB2BGR)
+    return img_OpenCV
 
 def read_orig_image(index):
     orig_im = cv2.imread("./styles/"+styles[index])
@@ -36,8 +55,12 @@ def read_orig_image(index):
     orig_im = np.pad(orig_im, ((y_new - 400 - orig_im.shape[0] + 30, 0), (0, x_new - orig_im.shape[1]), (0,0)), 'constant')
     text_size_ln1 = cv2.getTextSize(titles[index],cv2.FONT_HERSHEY_SIMPLEX,1,0)[0]
     text_size_ln2 = cv2.getTextSize("by "+authors[index],cv2.FONT_HERSHEY_SIMPLEX,1,0)[0]
-    cv2.putText(orig_im, titles[index], (orig_im.shape[1]-text_size_ln1[0], orig_im.shape[0]-(10+2*text_size_ln1[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, lineType=cv2.LINE_AA)
-    cv2.putText(orig_im, "by "+authors[index], (orig_im.shape[1]-text_size_ln2[0], orig_im.shape[0]-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, lineType=cv2.LINE_AA)
+    
+    # Add text to image
+    orig_im = put_utf_8_text(
+        orig_im, titles[index], (max(orig_im.shape[1]-text_size_ln1[0], 240), orig_im.shape[0]-(30+2*text_size_ln1[1])), (255,255,255))
+    orig_im = put_utf_8_text(
+        orig_im, "by "+authors[index], (max(orig_im.shape[1]-text_size_ln2[0], 240), orig_im.shape[0]-30), (255,255,255))
     
     return orig_im
        
