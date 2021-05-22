@@ -35,7 +35,7 @@ def put_utf_8_text(img_OpenCV, text_to_add, position, color):
     font = ImageFont.truetype("fonts/FreeMono.ttf", 20)
     draw = ImageDraw.Draw(img_PIL)
     
-    lines = textwrap.wrap(text_to_add, width=20)
+    lines = textwrap.wrap(text_to_add, width=15)
     position = (position[0], position[1] - (20 * len(lines)) )
     
     for line in lines:
@@ -47,7 +47,12 @@ def put_utf_8_text(img_OpenCV, text_to_add, position, color):
     return img_OpenCV
 
 def read_orig_image(index):
-    orig_im = cv2.imread("./styles/"+styles[index])
+    if ".ckpt" in styles[index]:
+        img_url = styles[index].replace(".ckpt", ".jpg")
+        orig_im = cv2.imread("./styles/"+img_url)
+    else:
+        orig_im = cv2.imread("./styles/"+styles[index])
+        
     factory = 240. / orig_im.shape[0]
     factorx = 240. / orig_im.shape[1]
     factor = min(factorx, factory)
@@ -58,9 +63,9 @@ def read_orig_image(index):
     
     # Add text to image
     orig_im = put_utf_8_text(
-        orig_im, titles[index], (max(orig_im.shape[1]-text_size_ln1[0], 240), orig_im.shape[0]-(30+2*text_size_ln1[1])), (255,255,255))
+        orig_im, titles[index], (max(orig_im.shape[1]-text_size_ln1[0], 260), orig_im.shape[0]-(30+2*text_size_ln1[1])), (255,255,255))
     orig_im = put_utf_8_text(
-        orig_im, "by "+authors[index], (max(orig_im.shape[1]-text_size_ln2[0], 240), orig_im.shape[0]-30), (255,255,255))
+        orig_im, "by "+authors[index], (max(orig_im.shape[1]-text_size_ln2[0], 260), orig_im.shape[0]-20), (255,255,255))
     
     return orig_im
        
@@ -277,10 +282,11 @@ if __name__ == '__main__':
         # Ignore the header
         meta_lines = meta_file.readlines()[1:]
         for line in meta_lines:
-    	    st, au, ti = line.strip().split("|")
-    	    styles.append(st)
-    	    authors.append(au)
-    	    titles.append(ti)
+            if (line[0] != "#"):
+    	        st, au, ti = line.strip().split("|")
+    	        styles.append(st)
+    	        authors.append(au)
+    	        titles.append(ti)
     
     # Create face detector
     detector = dlib.get_frontal_face_detector()
