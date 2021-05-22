@@ -47,7 +47,12 @@ def put_utf_8_text(img_OpenCV, text_to_add, position, color):
     return img_OpenCV
 
 def read_orig_image(index):
-    orig_im = cv2.imread("./styles/"+styles[index])
+    if ".ckpt" in styles[index]:
+        img_url = styles[index].replace(".ckpt", ".jpg")
+        orig_im = cv2.imread("./styles/"+img_url)
+    else:
+        orig_im = cv2.imread("./styles/"+styles[index])
+        
     factory = 240. / orig_im.shape[0]
     factorx = 240. / orig_im.shape[1]
     factor = min(factorx, factory)
